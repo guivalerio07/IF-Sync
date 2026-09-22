@@ -31,6 +31,12 @@
       min-height: 100vh;
     }
 
+    .titulo-secao {
+  font-size: 19px;
+  font-weight: bold;
+  margin: 20px 0 10px;
+}
+    
     header {
       background: #2db875;
       color: white;
@@ -579,6 +585,16 @@
   <section id="telaAvisos" class="tela ativa">
 
 ```
+    <div id="tituloProximos" class="titulo-secao" style="display:none;">
+  🔴 Próximos do prazo
+</div>
+
+<div id="listaProximos"></div>
+
+<div id="tituloOutros" class="titulo-secao">
+  📢 Avisos
+</div>
+
 <div id="listaAvisos"></div>
 ```
 
@@ -1039,21 +1055,199 @@
      AVISOS
   ====================================================== */
 
-  function mostrarAvisos() {
+ function mostrarAvisos() {
 
-    verificarPrazos();
+  verificarPrazos();
 
-    const container =
-      document.getElementById(
-        "listaAvisos"
-      );
+  const proximos = document.getElementById("listaProximos");
+  const outros = document.getElementById("listaAvisos");
 
-    container.innerHTML = "";
+  const tituloProximos = document.getElementById("tituloProximos");
+
+  proximos.innerHTML = "";
+  outros.innerHTML = "";
+
+  /*
+    Separa os avisos que estão a
+    0, 1, 2 ou 3 dias do prazo.
+  */
+
+  const listaProximos = [];
+  const listaOutros = [];
+
+  avisos.forEach(aviso => {
+
+    const dias = diasAtePrazo(aviso.prazo);
+
+    if (
+      dias !== null &&
+      dias >= 0 &&
+      dias <= 3 &&
+      !(
+        aviso.tipo === "tarefa" &&
+        aviso.concluida
+      )
+    ) {
+      listaProximos.push(aviso);
+    } else {
+      listaOutros.push(aviso);
+    }
+
+  });
+
+  /*
+    Tarefas concluídas sempre ficam no final.
+  */
+
+  listaOutros.sort((a, b) => {
+
+    if (
+      a.tipo === "tarefa" &&
+      a.concluida &&
+      !(
+        b.tipo === "tarefa" &&
+        b.concluida
+      )
+    ) {
+      return 1;
+    }
+
+    if (
+      !(
+        a.tipo === "tarefa" &&
+        a.concluida
+      ) &&
+      b.tipo === "tarefa" &&
+      b.concluida
+    ) {
+      return -1;
+    }
+
+    return 0;
+
+  });
 
 
-    if (avisos.length === 0) {
+  function criarCard(aviso) {
 
-      container.innerHTML = `
+    const info = infoTipo(aviso.tipo);
+
+    const card = document.createElement("div");
+
+    card.className =
+      `card ${aviso.tipo} ${
+        aviso.concluida ? "concluida" : ""
+      }`;
+
+    let botao = "";
+
+    if (aviso.tipo === "tarefa") {
+
+      botao = `
+        <button
+          class="botao-concluir ${
+            aviso.concluida ? "desmarcar" : ""
+          }"
+          onclick="alternarConclusao(event, '${aviso.id}')">
+
+          ${
+            aviso.concluida
+              ? "↩ Desmarcar"
+              : "✓ Concluído"
+          }
+
+        </button>
+      `;
+
+    }
+
+    card.innerHTML = `
+
+      <button
+        class="card-cabecalho"
+        onclick="abrirCard(this)">
+
+        <span class="titulo-tipo">
+
+          <span>
+            ${info.icone}
+          </span>
+
+          <span>
+            ${info.nome}
+          </span>
+
+        </span>
+
+        <span class="seta">
+          ⌄
+        </span>
+
+      </button>
+
+      <div class="conteudo">
+
+        <div class="texto-aviso">
+          ${escaparHTML(aviso.texto)}
+        </div>
+
+        <div class="prazo">
+
+          Encerra em:
+          <strong>
+            ${formatarData(aviso.prazo)}
+          </strong>
+
+        </div>
+
+        ${textoPrazoProximo(aviso.prazo)}
+
+        ${botao}
+
+      </div>
+
+    `;
+
+    return card;
+
+  }
+
+
+  /* =========================
+     PRÓXIMOS DO PRAZO
+  ========================= */
+
+  if (listaProximos.length > 0) {
+
+    tituloProximos.style.display = "block";
+
+    listaProximos
+      .sort((a, b) => {
+        return diasAtePrazo(a.prazo) -
+               diasAtePrazo(b.prazo);
+      })
+      .forEach(aviso => {
+        proximos.appendChild(
+          criarCard(aviso)
+        );
+      });
+
+  } else {
+
+    tituloProximos.style.display = "none";
+
+  }
+
+
+  /* =========================
+     OUTROS AVISOS
+  ========================= */
+
+  if (listaOutros.length === 0) {
+
+    if (listaProximos.length === 0) {
+
+      outros.innerHTML = `
         <div class="vazio">
 
           <strong>
@@ -1068,164 +1262,19 @@
         </div>
       `;
 
-      return;
-
     }
 
+  } else {
 
-    /*
-      Tarefas concluídas ficam no final.
-      Os demais avisos permanecem
-      na ordem normal.
-    */
-
-    const listaOrdenada =
-      [...avisos].sort((a, b) => {
-
-        if (
-          a.tipo === "tarefa" &&
-          b.tipo === "tarefa"
-        ) {
-
-          if (
-            a.concluida &&
-            !b.concluida
-          ) return 1;
-
-          if (
-            !a.concluida &&
-            b.concluida
-          ) return -1;
-
-        }
-
-        if (
-          a.tipo === "tarefa" &&
-          a.concluida
-        ) return 1;
-
-        if (
-          b.tipo === "tarefa" &&
-          b.concluida
-        ) return -1;
-
-        return 0;
-
-      });
-
-
-    listaOrdenada.forEach(aviso => {
-
-      const info =
-        infoTipo(aviso.tipo);
-
-
-      const card =
-        document.createElement("div");
-
-
-      card.className =
-        `card ${aviso.tipo} ${
-          aviso.concluida
-          ? "concluida"
-          : ""
-        }`;
-
-
-      let botao = "";
-
-
-      if (aviso.tipo === "tarefa") {
-
-        botao = `
-          <button
-            class="botao-concluir ${
-              aviso.concluida
-              ? "desmarcar"
-              : ""
-            }"
-            onclick="
-              alternarConclusao(
-                event,
-                '${aviso.id}'
-              )
-            ">
-
-            ${
-              aviso.concluida
-              ? "↩ Desmarcar"
-              : "✓ Concluído"
-            }
-
-          </button>
-        `;
-
-      }
-
-
-      card.innerHTML = `
-
-        <button
-          class="card-cabecalho"
-          onclick="abrirCard(this)">
-
-          <span class="titulo-tipo">
-
-            <span>
-              ${info.icone}
-            </span>
-
-            <span>
-              ${info.nome}
-            </span>
-
-          </span>
-
-          <span class="seta">
-            ⌄
-          </span>
-
-        </button>
-
-
-        <div class="conteudo">
-
-          <div class="texto-aviso">
-            ${escaparHTML(aviso.texto)}
-          </div>
-
-
-          <div class="prazo">
-
-            Encerra em:
-
-            <strong>
-              ${formatarData(aviso.prazo)}
-            </strong>
-
-          </div>
-
-
-          ${
-            textoPrazoProximo(
-              aviso.prazo
-            )
-          }
-
-
-          ${botao}
-
-        </div>
-
-      `;
-
-
-      container.appendChild(card);
-
+    listaOutros.forEach(aviso => {
+      outros.appendChild(
+        criarCard(aviso)
+      );
     });
 
   }
 
+}
 
   function abrirCard(botao) {
 
