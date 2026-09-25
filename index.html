@@ -549,25 +549,24 @@ function carregarMembroAtual() {
 }
     
     async function carregarAvisos() {
-      const { data, error } = await supabaseClient
-        .from("Avisos")
-        .select("id, tipo, texto, prazo, concluído, created_at")
-        .order("created_at", { ascending: false });
+  const { data, error } = await supabaseClient
+    .from("Avisos")
+    .select("id, tipo, texto, prazo, created_at, autor_id")
+    .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Erro ao carregar avisos do Supabase:", error);
+  if (error) {
+    console.error("Erro ao carregar avisos do Supabase:", error);
 
-        // Mantém os avisos locais como fallback durante o teste.
-        avisos = JSON.parse(localStorage.getItem("avisosAutomacao2") || "[]");
-        mostrarAvisos();
-        mostrarGerenciamento();
-        return;
-      }
+    avisos = JSON.parse(localStorage.getItem("avisosAutomacao2") || "[]");
+    mostrarAvisos();
+    mostrarGerenciamento();
+    return;
+  }
 
-      avisos = data || [];
-      mostrarAvisos();
-      mostrarGerenciamento();
-    }
+  avisos = data || [];
+  mostrarAvisos();
+  mostrarGerenciamento();
+}
 
     function gerarId() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -700,50 +699,60 @@ function carregarMembroAtual() {
       document.getElementById("prazo").value = "";
     }
 
-    function salvarAviso() {
-      const tipo = document.getElementById("tipo").value;
-      const texto = document.getElementById("texto").value.trim();
-      const prazo = document.getElementById("prazo").value;
+    async function salvarAviso() {
+  const tipo = document.getElementById("tipo").value;
+  const texto = document.getElementById("texto").value.trim();
+  const prazo = document.getElementById("prazo").value;
 
-      if (!texto) {
-        alert("Digite uma mensagem.");
-        return;
-      }
+  if (!texto) {
+    alert("Digite uma mensagem.");
+    return;
+  }
 
-      if (!prazo) {
-        alert("Escolha a data de encerramento.");
-        return;
-      }
+  if (!prazo) {
+    alert("Escolha a data de encerramento.");
+    return;
+  }
 
-      if (prazo < dataHoje()) {
-        alert("A data de encerramento não pode ser anterior a hoje.");
-        return;
-      }
+  if (prazo < dataHoje()) {
+    alert("A data de encerramento não pode ser anterior a hoje.");
+    return;
+  }
 
-      if (idEmEdicao) {
-        const aviso = avisos.find(a => a.id === idEmEdicao);
+  if (!membroAtual || membroAtual.perfil !== "admin") {
+    alert("Você não tem permissão para adicionar avisos.");
+    return;
+  }
 
-        if (aviso) {
-          aviso.tipo = tipo;
-          aviso.texto = texto;
-          aviso.prazo = prazo;
-        }
-      } else {
-        avisos.unshift({
-          id: gerarId(),
-          tipo: tipo,
-          texto: texto,
-          prazo: prazo,
-          concluida: false
-        });
-      }
+  if (idEmEdicao) {
+    alert("A edição ainda será conectada ao Supabase no próximo passo.");
+    return;
+  }
 
-      salvarNoStorage();
-      cancelarFormulario();
-      mostrarAvisos();
-      mostrarGerenciamento();
-      mostrarTela("avisos");
-    }
+  const { data, error } = await supabaseClient
+    .from("Avisos")
+    .insert({
+      tipo: tipo,
+      texto: texto,
+      prazo: prazo,
+      autor_id: membroAtual.membro_id
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao salvar aviso no Supabase:", error);
+    alert("Não foi possível salvar o aviso.");
+    return;
+  }
+
+  avisos.unshift(data);
+
+  cancelarFormulario();
+  mostrarAvisos();
+  mostrarGerenciamento();
+  mostrarTela("avisos");
+}
 
     function editarAviso(id) {
       const aviso = avisos.find(a => a.id === id);
