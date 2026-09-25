@@ -730,15 +730,12 @@ function carregarMembroAtual() {
   }
 
   const { data, error } = await supabaseClient
-    .from("Avisos")
-    .insert({
-      tipo: tipo,
-      texto: texto,
-      prazo: prazo,
-      autor_id: membroAtual.membro_id
-    })
-    .select()
-    .single();
+  .rpc("criar_aviso_if_sync", {
+    p_membro_id: membroAtual.membro_id,
+    p_tipo: tipo,
+    p_texto: texto,
+    p_prazo: prazo
+  });
 
   if (error) {
     console.error("Erro ao salvar aviso no Supabase:", error);
