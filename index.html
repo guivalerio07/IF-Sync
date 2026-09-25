@@ -438,7 +438,11 @@
     // ===============================
     const SUPABASE_URL = "https://ghtbeyhilklikelujrty.supabase.co";
     const SUPABASE_KEY = "sb_publishable_F0r8m3uQz22MskigxqBBhQ_vfGCxJIG";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+    
 
     let avisos = [];
     let idEmEdicao = null;
@@ -493,7 +497,7 @@ function carregarMembroAtual() {
     return;
   }
 
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await supabaseClient.rpc(
     "entrar_no_if_sync",
     {
       p_nome: nome,
@@ -545,7 +549,7 @@ function carregarMembroAtual() {
 }
     
     async function carregarAvisos() {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("avisos")
         .select("id, tipo, texto, prazo, concluida, created_at")
         .order("created_at", { ascending: false });
