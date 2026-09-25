@@ -550,7 +550,7 @@ function carregarMembroAtual() {
     
     async function carregarAvisos() {
       const { data, error } = await supabaseClient
-        .from("avisos")
+        .from("Avisos")
         .select("id, tipo, texto, prazo, concluida, created_at")
         .order("created_at", { ascending: false });
 
