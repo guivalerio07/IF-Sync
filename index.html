@@ -279,10 +279,104 @@
       nav { min-height: 86px; }
       nav button { min-width: 0; flex: 1; }
     }
+
+    .tela-entrada {
+  position: fixed;
+  inset: 0;
+  background: #8ff0c5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.caixa-entrada {
+  width: min(420px, 100%);
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.12);
+}
+
+.caixa-entrada h1 {
+  margin: 0 0 8px;
+  text-align: center;
+  color: #2db875;
+}
+
+.caixa-entrada p {
+  text-align: center;
+  color: #666;
+  margin-bottom: 25px;
+}
+
+.caixa-entrada label {
+  display: block;
+  font-weight: bold;
+  margin: 14px 0 7px;
+}
+
+.caixa-entrada input {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 13px;
+  font: inherit;
+}
+
+.caixa-entrada button {
+  width: 100%;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 12px;
+  padding: 14px;
+  background: #2db875;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#erroEntrada {
+  margin-top: 14px;
+  color: #a22;
+  text-align: center;
+  font-size: 14px;
+}
+    
   </style>
 </head>
 
 <body>
+
+  <div id="telaEntrada" class="tela-entrada">
+  <div class="caixa-entrada">
+    <h1>IF Sync</h1>
+    <p>Entre com seu nome + inicial do sobrenome e o código da turma.</p>
+
+    <label for="nomeEntrada">Nome</label>
+    <input
+      type="text"
+      id="nomeEntrada"
+      placeholder="Ex.: Lucas C"
+    >
+
+    <label for="codigoEntrada">Código da turma</label>
+    <input
+      type="password"
+      id="codigoEntrada"
+      placeholder="Digite o código"
+    >
+
+    <button onclick="entrarNoIFSync()">
+      Entrar
+    </button>
+
+    <div id="erroEntrada"></div>
+  </div>
+</div>
+  
   <header>Automação 2</header>
 
   <main>
@@ -330,9 +424,9 @@
     <button id="navAvisos" class="ativo" onclick="mostrarTela('avisos')">
       📢 Avisos
     </button>
-    <button id="navAdicionar" onclick="mostrarTela('adicionar')">
-      ➕ Adicionar
-    </button>
+    <button id="navAdicionar" style="display:none;" onclick="mostrarTela('adicionar')">
+  ➕ Adicionar
+</button>
   </nav>
 
   <!-- Supabase -->
@@ -349,6 +443,107 @@
     let avisos = [];
     let idEmEdicao = null;
 
+    let membroAtual = null;
+
+function salvarMembroAtual(membro) {
+  membroAtual = membro;
+
+  localStorage.setItem(
+    "ifSyncMembro",
+    JSON.stringify(membro)
+  );
+}
+
+function carregarMembroAtual() {
+  const salvo = localStorage.getItem("ifSyncMembro");
+
+  if (!salvo) return null;
+
+  try {
+    membroAtual = JSON.parse(salvo);
+    return membroAtual;
+  } catch {
+    localStorage.removeItem("ifSyncMembro");
+    return null;
+  }
+}
+
+    async function entrarNoIFSync() {
+  const nome = document
+    .getElementById("nomeEntrada")
+    .value
+    .trim();
+
+  const codigo = document
+    .getElementById("codigoEntrada")
+    .value
+    .trim();
+
+  const erro = document.getElementById("erroEntrada");
+
+  erro.textContent = "";
+
+  if (!nome) {
+    erro.textContent = "Digite seu nome.";
+    return;
+  }
+
+  if (!codigo) {
+    erro.textContent = "Digite o código da turma.";
+    return;
+  }
+
+  const { data, error } = await supabase.rpc(
+    "entrar_no_if_sync",
+    {
+      p_nome: nome,
+      p_codigo: codigo
+    }
+  );
+
+  if (error) {
+    console.error("Erro ao entrar:", error);
+    erro.textContent = "Código ou nome inválido.";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    erro.textContent = "Não foi possível identificar você.";
+    return;
+  }
+
+  const membro = data[0];
+
+  salvarMembroAtual({
+    membro_id: membro.membro_id,
+    turma_id: membro.turma_id,
+    perfil: membro.perfil,
+    funcao_admin: membro.funcao_admin,
+    nome: nome
+  });
+
+  iniciarAplicativo();
+}
+
+    function iniciarAplicativo() {
+  const telaEntrada = document.getElementById("telaEntrada");
+
+  telaEntrada.style.display = "none";
+
+  const navAdicionar = document.getElementById("navAdicionar");
+  const telaAdicionar = document.getElementById("telaAdicionar");
+
+  if (membroAtual.perfil === "admin") {
+    navAdicionar.style.display = "";
+  } else {
+    navAdicionar.style.display = "none";
+    telaAdicionar.classList.remove("ativa");
+    document.getElementById("telaAvisos").classList.add("ativa");
+  }
+
+  carregarAvisos();
+}
+    
     async function carregarAvisos() {
       const { data, error } = await supabase
         .from("avisos")
@@ -651,7 +846,11 @@
     }
 
     // Primeira renderização: busca os avisos no Supabase.
-    carregarAvisos();
+    const membroSalvo = carregarMembroAtual();
+
+if (membroSalvo) {
+  iniciarAplicativo();
+}
 
     // Verifica prazos automaticamente enquanto a página estiver aberta.
     setInterval(() => {
