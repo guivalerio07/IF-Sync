@@ -15,6 +15,93 @@
 
   <style>
 
+    /* ===============================
+   SPLASH SCREEN
+   =============================== */
+
+#splashScreen {
+  position: fixed;
+  inset: 0;
+  background: #8ff0c5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .5s ease, visibility .5s ease;
+}
+
+#splashScreen.saindo {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash-conteudo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: splashEntrada .8s ease-out forwards;
+}
+
+.splash-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  animation: splashLogo 1s ease-out forwards;
+}
+
+.splash-nome {
+  font-size: 38px;
+  font-weight: bold;
+  color: #236342;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: splashNome .6s ease-out .35s forwards;
+}
+
+@keyframes splashEntrada {
+  from {
+    opacity: 0;
+    transform: scale(.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashLogo {
+  0% {
+    transform: scale(.75);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes splashNome {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
     .prazo-alerta {
   border: 2px solid #e74c3c;
 }
@@ -373,6 +460,22 @@
 </head>
 
 <body>
+
+  <div id="splashScreen">
+  <div class="splash-conteudo">
+
+    <img
+      src="icons/icon-192.png"
+      alt="IF Sync"
+      class="splash-logo"
+    >
+
+    <div class="splash-nome">
+      Sync
+    </div>
+
+  </div>
+</div>
 
   <div id="telaEntrada" class="tela-entrada">
   <div class="caixa-entrada">
@@ -1396,6 +1499,20 @@ item.innerHTML = `
   });
 }
 
+    // ===============================
+// SPLASH SCREEN
+// ===============================
+
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    const splash = document.getElementById("splashScreen");
+
+    if (splash) {
+      splash.classList.add("saindo");
+    }
+  }, 1400);
+});
+    
     // Primeira renderização: busca os avisos no Supabase.
     const membroSalvo = carregarMembroAtual();
 
