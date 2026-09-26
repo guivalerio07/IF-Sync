@@ -31,6 +31,12 @@
   font-weight: bold;
   font-size: 18px;
 }
+
+    .titulo-concluidas {
+  margin: 24px 0 12px;
+  font-weight: bold;
+  font-size: 18px;
+}
     
     * { box-sizing: border-box; }
 
@@ -687,7 +693,7 @@ if (error) {
       return { icone: "📢", nome: "Aviso" };
     }
 
-   function mostrarAvisos() {
+ function mostrarAvisos() {
   verificarPrazos();
 
   const container = document.getElementById("listaAvisos");
@@ -708,9 +714,18 @@ if (error) {
 
   const proximos = [];
   const normais = [];
+  const concluidas = [];
 
   avisos.forEach(aviso => {
+
+    // Tarefas concluídas vão direto para "Concluídas"
+    if (aviso.tipo === "tarefa" && aviso.concluida) {
+      concluidas.push(aviso);
+      return;
+    }
+
     const prazo = new Date(aviso.prazo + "T00:00:00");
+
     const diferenca =
       Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
 
@@ -748,10 +763,13 @@ if (error) {
       </button>
 
       <div class="conteudo">
-        <div class="texto-aviso">${escaparHTML(aviso.texto)}</div>
+        <div class="texto-aviso">
+          ${escaparHTML(aviso.texto)}
+        </div>
 
         <div class="prazo">
-          Encerra em: <strong>${formatarData(aviso.prazo)}</strong>
+          Encerra em:
+          <strong>${formatarData(aviso.prazo)}</strong>
         </div>
 
         ${botao}
@@ -761,7 +779,10 @@ if (error) {
     container.appendChild(card);
   }
 
+  // =========================
   // PRÓXIMOS DO PRAZO
+  // =========================
+
   if (proximos.length > 0) {
     const titulo = document.createElement("div");
     titulo.className = "titulo-proximos-prazo";
@@ -773,7 +794,10 @@ if (error) {
     });
   }
 
+  // =========================
   // AVISOS NORMAIS
+  // =========================
+
   if (normais.length > 0) {
     const titulo = document.createElement("div");
     titulo.className = "titulo-avisos";
@@ -781,6 +805,21 @@ if (error) {
     container.appendChild(titulo);
 
     normais.forEach(aviso => {
+      criarCard(aviso);
+    });
+  }
+
+  // =========================
+  // CONCLUÍDAS
+  // =========================
+
+  if (concluidas.length > 0) {
+    const titulo = document.createElement("div");
+    titulo.className = "titulo-concluidas";
+    titulo.innerHTML = "✅ Concluídas";
+    container.appendChild(titulo);
+
+    concluidas.forEach(aviso => {
       criarCard(aviso);
     });
   }
