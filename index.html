@@ -14,6 +14,24 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <style>
+
+    .prazo-alerta {
+  border: 2px solid #e74c3c;
+}
+
+.titulo-proximos-prazo {
+  margin: 10px 0 12px;
+  font-weight: bold;
+  color: #e74c3c;
+  font-size: 18px;
+}
+
+.titulo-avisos {
+  margin: 24px 0 12px;
+  font-weight: bold;
+  font-size: 18px;
+}
+    
     * { box-sizing: border-box; }
 
     body {
@@ -669,59 +687,104 @@ if (error) {
       return { icone: "📢", nome: "Aviso" };
     }
 
-    function mostrarAvisos() {
-      verificarPrazos();
+   function mostrarAvisos() {
+  verificarPrazos();
 
-      const container = document.getElementById("listaAvisos");
-      container.innerHTML = "";
+  const container = document.getElementById("listaAvisos");
+  container.innerHTML = "";
 
-      if (avisos.length === 0) {
-        container.innerHTML = `
-          <div class="vazio">
-            <strong>Nenhum aviso por enquanto.</strong><br>
-            Os avisos da turma aparecerão aqui.
-          </div>
-        `;
-        return;
-      }
+  if (avisos.length === 0) {
+    container.innerHTML = `
+      <div class="vazio">
+        <strong>Nenhum aviso por enquanto.</strong><br>
+        Os avisos da turma aparecerão aqui.
+      </div>
+    `;
+    return;
+  }
 
-      avisos.forEach(aviso => {
-        const info = infoTipo(aviso.tipo);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
-        const card = document.createElement("div");
-        card.className =
-          `card ${aviso.tipo} ${aviso.concluida ? "concluida" : ""}`;
+  const proximos = [];
+  const normais = [];
 
-        const botao = aviso.tipo === "tarefa"
-          ? `
-            <button class="botao-concluir ${aviso.concluida ? "desmarcar" : ""}"
-                    onclick="alternarConclusao(event, '${aviso.id}')">
-              ${aviso.concluida ? "↩ Desmarcar" : "✓ Concluído"}
-            </button>
-          `
-          : "";
+  avisos.forEach(aviso => {
+    const prazo = new Date(aviso.prazo + "T00:00:00");
+    const diferenca =
+      Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
 
-        card.innerHTML = `
-          <button class="card-cabecalho" onclick="abrirCard(this)">
-            <span class="titulo-tipo">
-              <span>${info.icone}</span>
-              <span>${info.nome}</span>
-            </span>
-            <span class="seta">⌄</span>
-          </button>
-
-          <div class="conteudo">
-            <div class="texto-aviso">${escaparHTML(aviso.texto)}</div>
-            <div class="prazo">
-              Encerra em: <strong>${formatarData(aviso.prazo)}</strong>
-            </div>
-            ${botao}
-          </div>
-        `;
-
-        container.appendChild(card);
-      });
+    if (diferenca <= 3) {
+      proximos.push(aviso);
+    } else {
+      normais.push(aviso);
     }
+  });
+
+  function criarCard(aviso, alerta = false) {
+    const info = infoTipo(aviso.tipo);
+
+    const card = document.createElement("div");
+
+    card.className =
+      `card ${aviso.tipo} ${aviso.concluida ? "concluida" : ""} ${alerta ? "prazo-alerta" : ""}`;
+
+    const botao = aviso.tipo === "tarefa"
+      ? `
+        <button class="botao-concluir ${aviso.concluida ? "desmarcar" : ""}"
+                onclick="alternarConclusao(event, '${aviso.id}')">
+          ${aviso.concluida ? "↩ Desmarcar" : "✓ Concluído"}
+        </button>
+      `
+      : "";
+
+    card.innerHTML = `
+      <button class="card-cabecalho" onclick="abrirCard(this)">
+        <span class="titulo-tipo">
+          <span>${info.icone}</span>
+          <span>${info.nome}</span>
+        </span>
+        <span class="seta">⌄</span>
+      </button>
+
+      <div class="conteudo">
+        <div class="texto-aviso">${escaparHTML(aviso.texto)}</div>
+
+        <div class="prazo">
+          Encerra em: <strong>${formatarData(aviso.prazo)}</strong>
+        </div>
+
+        ${botao}
+      </div>
+    `;
+
+    container.appendChild(card);
+  }
+
+  // PRÓXIMOS DO PRAZO
+  if (proximos.length > 0) {
+    const titulo = document.createElement("div");
+    titulo.className = "titulo-proximos-prazo";
+    titulo.innerHTML = "⚠️ Próximos do prazo";
+    container.appendChild(titulo);
+
+    proximos.forEach(aviso => {
+      criarCard(aviso, true);
+    });
+  }
+
+  // AVISOS NORMAIS
+  if (normais.length > 0) {
+    const titulo = document.createElement("div");
+    titulo.className = "titulo-avisos";
+    titulo.innerHTML = "📢 Avisos";
+    container.appendChild(titulo);
+
+    normais.forEach(aviso => {
+      criarCard(aviso);
+    });
+  }
+}
 
     function abrirCard(botao) {
       const card = botao.closest(".card");
