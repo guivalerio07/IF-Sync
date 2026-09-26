@@ -569,11 +569,11 @@ function carregarMembroAtual() {
 
   // Descobrir quais avisos este membro concluiu
   if (membroAtual) {
-    const { data: conclusoes, error: erroConclusoes } =
-      await supabaseClient
-        .from("conclusoes_avisos")
-        .select("aviso_id")
-        .eq("membro_id", membroAtual.membro_id);
+   const { data: conclusoes, error: erroConclusoes } =
+  await supabaseClient
+    .rpc("buscar_conclusoes_if_sync", {
+      p_membro_id: membroAtual.membro_id
+    });
 
     if (erroConclusoes) {
       console.error(
