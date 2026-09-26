@@ -359,7 +359,7 @@
     <input
       type="text"
       id="nomeEntrada"
-      placeholder="Ex.: Lucas C"
+      placeholder="Ex.: Nathan C"
     >
 
     <label for="codigoEntrada">Código da turma</label>
@@ -553,18 +553,16 @@ function carregarMembroAtual() {
     .select("id, tipo, texto, prazo, created_at, autor_id")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Erro ao carregar avisos do Supabase:", error);
+if (error) {
+  console.error("Erro ao carregar avisos do Supabase:", error);
 
-    avisos = JSON.parse(
-      localStorage.getItem("avisosAutomacao2") || "[]"
-    );
+  avisos = [];
 
-    mostrarAvisos();
-    mostrarGerenciamento();
-    return;
-  }
+  mostrarAvisos();
+  mostrarGerenciamento();
 
+  return;
+}
   avisos = data || [];
 
   // Descobrir quais avisos este membro concluiu
@@ -618,18 +616,13 @@ function carregarMembroAtual() {
       localStorage.setItem("avisosAutomacao2", JSON.stringify(avisos));
     }
 
-    function verificarPrazos() {
-      const hoje = dataHoje();
-      const antes = avisos.length;
+   function verificarPrazos() {
+  const hoje = dataHoje();
 
-      // O aviso fica disponível até o dia escolhido.
-      // Ele é removido automaticamente a partir do dia seguinte.
-      avisos = avisos.filter(aviso => !aviso.prazo || aviso.prazo >= hoje);
-
-      if (avisos.length !== antes) {
-        salvarNoStorage();
-      }
-    }
+  avisos = avisos.filter(
+    aviso => !aviso.prazo || aviso.prazo >= hoje
+  );
+}
 
     function escaparHTML(texto) {
       const div = document.createElement("div");
