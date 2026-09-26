@@ -778,6 +778,44 @@ if (error) {
     return;
   }
 
+        // PUBLICAR SUGESTÃO COMO AVISO
+  if (window.sugestaoEmAprovacao) {
+
+    const { data, error } = await supabaseClient
+      .rpc("publicar_sugestao_if_sync", {
+        p_membro_id: membroAtual.membro_id,
+        p_sugestao_id: window.sugestaoEmAprovacao,
+        p_tipo: tipo,
+        p_texto: texto,
+        p_prazo: prazo
+      });
+
+    if (error) {
+      console.error(
+        "Erro ao publicar sugestão como aviso:",
+        error
+      );
+
+      alert("Não foi possível publicar a sugestão.");
+      return;
+    }
+
+    // Adiciona o novo aviso à lista
+    avisos.unshift(data);
+
+    // Limpa o estado da aprovação
+    window.sugestaoEmAprovacao = null;
+
+    cancelarFormulario();
+    mostrarAvisos();
+    mostrarGerenciamento();
+    mostrarTela("avisos");
+
+    carregarSugestoes();
+
+    return;
+  }
+
 if (idEmEdicao) {
   const { data, error } = await supabaseClient
     .rpc("editar_aviso_if_sync", {
@@ -1107,6 +1145,56 @@ item.innerHTML = `
   alert("Sugestão rejeitada.");
 
   carregarSugestoes();
+}
+
+    async function aprovarSugestao(sugestaoId) {
+  if (!membroAtual || membroAtual.perfil !== "admin") {
+    alert("Você não tem permissão para aprovar sugestões.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("Sugestões")
+    .select("id, texto, status")
+    .eq("id", sugestaoId)
+    .single();
+
+  if (error || !data) {
+    console.error("Erro ao carregar sugestão:", error);
+    alert("Não foi possível carregar a sugestão.");
+    return;
+  }
+
+  if (data.status !== "pendente") {
+    alert("Esta sugestão já foi analisada.");
+    carregarSugestoes();
+    return;
+  }
+
+  // Guardar qual sugestão está sendo transformada em aviso
+  window.sugestaoEmAprovacao = data.id;
+
+  // Abrir o formulário normal de aviso
+  idEmEdicao = null;
+
+  document.getElementById("modoEdicao").style.display = "block";
+  document.getElementById("modoEdicao").textContent =
+    "💡 Transformando sugestão em aviso";
+
+  document.getElementById("tipo").value = "aviso";
+  document.getElementById("texto").value = data.texto;
+  document.getElementById("prazo").value = "";
+
+  const form = document.getElementById("formulario");
+  form.classList.add("visivel");
+
+  // Ir para a tela de gerenciamento
+  mostrarTela("adicionar");
+
+  form.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
     
     function mostrarGerenciamento() {
