@@ -724,10 +724,37 @@ function carregarMembroAtual() {
     return;
   }
 
-  if (idEmEdicao) {
-    alert("A edição ainda será conectada ao Supabase no próximo passo.");
+if (idEmEdicao) {
+  const { data, error } = await supabaseClient
+    .rpc("editar_aviso_if_sync", {
+      p_membro_id: membroAtual.membro_id,
+      p_aviso_id: idEmEdicao,
+      p_tipo: tipo,
+      p_texto: texto,
+      p_prazo: prazo
+    });
+
+  if (error) {
+    console.error("Erro ao editar aviso no Supabase:", error);
+    alert("Não foi possível editar o aviso.");
     return;
   }
+
+  const indice = avisos.findIndex(aviso => aviso.id === idEmEdicao);
+
+  if (indice !== -1) {
+    avisos[indice] = data;
+  }
+
+  idEmEdicao = null;
+
+  cancelarFormulario();
+  mostrarAvisos();
+  mostrarGerenciamento();
+  mostrarTela("avisos");
+
+  return;
+}
 
   const { data, error } = await supabaseClient
   .rpc("criar_aviso_if_sync", {
