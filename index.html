@@ -1079,6 +1079,35 @@ item.innerHTML = `
     container.appendChild(item);
   });
 }
+
+    async function rejeitarSugestao(sugestaoId) {
+  if (!membroAtual || membroAtual.perfil !== "admin") {
+    alert("Você não tem permissão para rejeitar sugestões.");
+    return;
+  }
+
+  const confirmar = confirm(
+    "Rejeitar esta sugestão?\n\nEla não será publicada para a turma."
+  );
+
+  if (!confirmar) return;
+
+  const { error } = await supabaseClient
+    .rpc("rejeitar_sugestao_if_sync", {
+      p_membro_id: membroAtual.membro_id,
+      p_sugestao_id: sugestaoId
+    });
+
+  if (error) {
+    console.error("Erro ao rejeitar sugestão:", error);
+    alert("Não foi possível rejeitar a sugestão.");
+    return;
+  }
+
+  alert("Sugestão rejeitada.");
+
+  carregarSugestoes();
+}
     
     function mostrarGerenciamento() {
       verificarPrazos();
