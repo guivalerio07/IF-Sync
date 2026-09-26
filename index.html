@@ -1049,7 +1049,9 @@ async function carregarSugestoes() {
     return;
   }
 
-  const sugestoes = data || [];
+const sugestoes = (data || []).filter(
+  sugestao => sugestao.status === "pendente"
+);
 
   if (sugestoes.length === 0) {
     container.innerHTML = `
