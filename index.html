@@ -1042,15 +1042,39 @@ async function carregarSugestoes() {
       statusClasse = "rejeitada";
     }
 
-    item.innerHTML = `
-      <strong>💡 Sugestão</strong>
+let botoes = "";
 
-      <div>${escaparHTML(sugestao.texto)}</div>
+if (
+  membroAtual.perfil === "admin" &&
+  membroAtual.funcao_admin &&
+  sugestao.status === "pendente"
+) {
+  botoes = `
+    <div class="botoes-gerenciar">
+      <button class="editar"
+              onclick="aprovarSugestao('${sugestao.id}')">
+        ✅ Aprovar
+      </button>
 
-      <small class="${statusClasse}">
-        ${statusTexto}
-      </small>
-    `;
+      <button class="excluir"
+              onclick="rejeitarSugestao('${sugestao.id}')">
+        ❌ Rejeitar
+      </button>
+    </div>
+  `;
+}
+
+item.innerHTML = `
+  <strong>💡 Sugestão</strong>
+
+  <div>${escaparHTML(sugestao.texto)}</div>
+
+  <small class="${statusClasse}">
+    ${statusTexto}
+  </small>
+
+  ${botoes}
+`;
 
     container.appendChild(item);
   });
