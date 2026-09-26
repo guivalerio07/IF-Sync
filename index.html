@@ -794,19 +794,35 @@ if (idEmEdicao) {
       form.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    function excluirAviso(id) {
-      const aviso = avisos.find(a => a.id === id);
-      if (!aviso) return;
+    async function excluirAviso(id) {
+  const aviso = avisos.find(a => a.id === id);
+  if (!aviso) return;
 
-      if (!confirm("Excluir este aviso permanentemente?")) return;
+  if (!confirm("Excluir este aviso permanentemente?")) return;
 
-      avisos = avisos.filter(a => a.id !== id);
-      salvarNoStorage();
+  if (!membroAtual || membroAtual.perfil !== "admin") {
+    alert("Você não tem permissão para excluir avisos.");
+    return;
+  }
 
-      // Atualiza imediatamente as duas telas/listas.
-      mostrarAvisos();
-      mostrarGerenciamento();
-    }
+  const { error } = await supabaseClient
+    .rpc("excluir_aviso_if_sync", {
+      p_membro_id: membroAtual.membro_id,
+      p_aviso_id: id
+    });
+
+  if (error) {
+    console.error("Erro ao excluir aviso no Supabase:", error);
+    alert("Não foi possível excluir o aviso.");
+    return;
+  }
+
+  // Remove da tela imediatamente
+  avisos = avisos.filter(a => a.id !== id);
+
+  mostrarAvisos();
+  mostrarGerenciamento();
+}
 
     function alternarConclusao(event, id) {
       event.stopPropagation();
