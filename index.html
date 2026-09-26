@@ -385,6 +385,38 @@
       <div id="listaAvisos"></div>
     </section>
 
+    <!-- TELA DE SUGESTÕES -->
+<section id="telaSugestoes" class="tela">
+  <button class="botao-principal" onclick="abrirFormularioSugestao()">
+    💡 Enviar sugestão
+  </button>
+
+  <div id="formularioSugestao" class="formulario">
+    <label for="textoSugestao">Sua sugestão</label>
+
+    <textarea
+      id="textoSugestao"
+      placeholder="Digite uma sugestão para a turma..."
+    ></textarea>
+
+    <div class="acoes-form">
+      <button class="cancelar" onclick="cancelarFormularioSugestao()">
+        Cancelar
+      </button>
+
+      <button class="salvar" onclick="enviarSugestao()">
+        Enviar
+      </button>
+    </div>
+  </div>
+
+  <div class="gerenciar-titulo">
+    💡 Minhas sugestões
+  </div>
+
+  <div id="listaSugestoes"></div>
+</section>
+
     <!-- TELA DE ADICIONAR / GERENCIAR -->
     <section id="telaAdicionar" class="tela">
       <button class="botao-principal" onclick="abrirFormulario()">
@@ -420,14 +452,19 @@
     </section>
   </main>
 
-  <nav>
-    <button id="navAvisos" class="ativo" onclick="mostrarTela('avisos')">
-      📢 Avisos
-    </button>
-    <button id="navAdicionar" style="display:none;" onclick="mostrarTela('adicionar')">
-  ➕ Adicionar
-</button>
-  </nav>
+<nav>
+  <button id="navAvisos" class="ativo" onclick="mostrarTela('avisos')">
+    📢 Avisos
+  </button>
+
+  <button id="navSugestoes" onclick="mostrarTela('sugestoes')">
+    💡 Sugestões
+  </button>
+
+  <button id="navAdicionar" style="display:none;" onclick="mostrarTela('adicionar')">
+    ➕ Adicionar
+  </button>
+</nav>
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -884,6 +921,141 @@ if (idEmEdicao) {
   await carregarAvisos();
 }
 
+    // ===============================
+// SUGESTÕES
+// ===============================
+
+function abrirFormularioSugestao() {
+  const formulario = document.getElementById("formularioSugestao");
+
+  document.getElementById("textoSugestao").value = "";
+
+  formulario.classList.add("visivel");
+
+  formulario.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function cancelarFormularioSugestao() {
+  document
+    .getElementById("formularioSugestao")
+    .classList.remove("visivel");
+
+  document.getElementById("textoSugestao").value = "";
+}
+
+async function enviarSugestao() {
+  if (!membroAtual) {
+    alert("Você precisa estar conectado.");
+    return;
+  }
+
+  const campo = document.getElementById("textoSugestao");
+  const texto = campo.value.trim();
+
+  if (!texto) {
+    alert("Digite uma sugestão.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .rpc("criar_sugestao_if_sync", {
+      p_membro_id: membroAtual.membro_id,
+      p_texto: texto
+    });
+
+  if (error) {
+    console.error("Erro ao enviar sugestão:", error);
+    alert("Não foi possível enviar a sugestão.");
+    return;
+  }
+
+  alert("Sugestão enviada! Ela será analisada pelo representante ou vice.");
+
+  cancelarFormularioSugestao();
+
+  carregarSugestoes();
+}
+
+    // ===============================
+// CARREGAR SUGESTÕES
+// ===============================
+
+async function carregarSugestoes() {
+  if (!membroAtual) return;
+
+  const container = document.getElementById("listaSugestoes");
+
+  container.innerHTML = `
+    <div class="vazio">
+      Carregando sugestões...
+    </div>
+  `;
+
+  const { data, error } = await supabaseClient
+    .from("Sugestões")
+    .select("id, texto, status, created_at, autor_id, aviso_id")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao carregar sugestões:", error);
+
+    container.innerHTML = `
+      <div class="vazio">
+        Não foi possível carregar as sugestões.
+      </div>
+    `;
+
+    return;
+  }
+
+  const sugestoes = data || [];
+
+  if (sugestoes.length === 0) {
+    container.innerHTML = `
+      <div class="vazio">
+        <strong>Nenhuma sugestão ainda.</strong><br>
+        As sugestões enviadas aparecerão aqui.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = "";
+
+  sugestoes.forEach(sugestao => {
+    const item = document.createElement("div");
+    item.className = "gerenciar-item";
+
+    let statusTexto = "⏳ Pendente";
+    let statusClasse = "";
+
+    if (sugestao.status === "aprovada") {
+      statusTexto = "✅ Aprovada";
+      statusClasse = "aprovada";
+    }
+
+    if (sugestao.status === "rejeitada") {
+      statusTexto = "❌ Rejeitada";
+      statusClasse = "rejeitada";
+    }
+
+    item.innerHTML = `
+      <strong>💡 Sugestão</strong>
+
+      <div>${escaparHTML(sugestao.texto)}</div>
+
+      <small class="${statusClasse}">
+        ${statusTexto}
+      </small>
+    `;
+
+    container.appendChild(item);
+  });
+}
+    
     function mostrarGerenciamento() {
       verificarPrazos();
 
@@ -925,27 +1097,59 @@ if (idEmEdicao) {
     }
 
     function mostrarTela(tela) {
-      const avisosTela = document.getElementById("telaAvisos");
-      const adicionarTela = document.getElementById("telaAdicionar");
-      const navAvisos = document.getElementById("navAvisos");
-      const navAdicionar = document.getElementById("navAdicionar");
+  const avisosTela = document.getElementById("telaAvisos");
+  const sugestoesTela = document.getElementById("telaSugestoes");
+  const adicionarTela = document.getElementById("telaAdicionar");
 
-      if (tela === "avisos") {
-        avisosTela.classList.add("ativa");
-        adicionarTela.classList.remove("ativa");
-        navAvisos.classList.add("ativo");
-        navAdicionar.classList.remove("ativo");
-        mostrarAvisos();
-      } else {
-        avisosTela.classList.remove("ativa");
-        adicionarTela.classList.add("ativa");
-        navAvisos.classList.remove("ativo");
-        navAdicionar.classList.add("ativo");
-        mostrarGerenciamento();
-      }
+  const navAvisos = document.getElementById("navAvisos");
+  const navSugestoes = document.getElementById("navSugestoes");
+  const navAdicionar = document.getElementById("navAdicionar");
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  // AVISOS
+  if (tela === "avisos") {
+
+    avisosTela.classList.add("ativa");
+    sugestoesTela.classList.remove("ativa");
+    adicionarTela.classList.remove("ativa");
+
+    navAvisos.classList.add("ativo");
+    navSugestoes.classList.remove("ativo");
+    navAdicionar.classList.remove("ativo");
+
+    mostrarAvisos();
+
+  // SUGESTÕES
+  } else if (tela === "sugestoes") {
+
+    avisosTela.classList.remove("ativa");
+    sugestoesTela.classList.add("ativa");
+    adicionarTela.classList.remove("ativa");
+
+    navAvisos.classList.remove("ativo");
+    navSugestoes.classList.add("ativo");
+    navAdicionar.classList.remove("ativo");
+
+    carregarSugestoes();
+
+  // ADICIONAR
+  } else {
+
+    avisosTela.classList.remove("ativa");
+    sugestoesTela.classList.remove("ativa");
+    adicionarTela.classList.add("ativa");
+
+    navAvisos.classList.remove("ativo");
+    navSugestoes.classList.remove("ativo");
+    navAdicionar.classList.add("ativo");
+
+    mostrarGerenciamento();
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
 
     // Primeira renderização: busca os avisos no Supabase.
     const membroSalvo = carregarMembroAtual();
