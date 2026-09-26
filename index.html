@@ -547,8 +547,7 @@ function carregarMembroAtual() {
 
   carregarAvisos();
 }
-    
-    async function carregarAvisos() {
+   async function carregarAvisos() {
   const { data, error } = await supabaseClient
     .from("Avisos")
     .select("id, tipo, texto, prazo, created_at, autor_id")
@@ -557,13 +556,42 @@ function carregarMembroAtual() {
   if (error) {
     console.error("Erro ao carregar avisos do Supabase:", error);
 
-    avisos = JSON.parse(localStorage.getItem("avisosAutomacao2") || "[]");
+    avisos = JSON.parse(
+      localStorage.getItem("avisosAutomacao2") || "[]"
+    );
+
     mostrarAvisos();
     mostrarGerenciamento();
     return;
   }
 
   avisos = data || [];
+
+  // Descobrir quais avisos este membro concluiu
+  if (membroAtual) {
+    const { data: conclusoes, error: erroConclusoes } =
+      await supabaseClient
+        .from("conclusoes_avisos")
+        .select("aviso_id")
+        .eq("membro_id", membroAtual.membro_id);
+
+    if (erroConclusoes) {
+      console.error(
+        "Erro ao carregar conclusões:",
+        erroConclusoes
+      );
+    } else {
+      const idsConcluidos = new Set(
+        (conclusoes || []).map(c => c.aviso_id)
+      );
+
+      avisos = avisos.map(aviso => ({
+        ...aviso,
+        concluida: idsConcluidos.has(aviso.id)
+      }));
+    }
+  }
+
   mostrarAvisos();
   mostrarGerenciamento();
 }
@@ -824,16 +852,48 @@ if (idEmEdicao) {
   mostrarGerenciamento();
 }
 
-    function alternarConclusao(event, id) {
-      event.stopPropagation();
+   async function alternarConclusao(event, avisoId) {
+  event.stopPropagation();
 
-      const aviso = avisos.find(a => a.id === id);
-      if (!aviso || aviso.tipo !== "tarefa") return;
+  if (!membroAtual) {
+    alert("Você precisa estar conectado.");
+    return;
+  }
 
-      aviso.concluida = !aviso.concluida;
-      salvarNoStorage();
-      mostrarAvisos();
+  const aviso = avisos.find(a => a.id === avisoId);
+  if (!aviso) return;
+
+  const botao = event.currentTarget;
+  const estaConcluido = botao.classList.contains("desmarcar");
+
+  if (estaConcluido) {
+    const { error } = await supabaseClient
+      .rpc("desfazer_conclusao_if_sync", {
+        p_membro_id: membroAtual.membro_id,
+        p_aviso_id: avisoId
+      });
+
+    if (error) {
+      console.error("Erro ao desmarcar conclusão:", error);
+      alert("Não foi possível desmarcar a tarefa.");
+      return;
     }
+  } else {
+    const { error } = await supabaseClient
+      .rpc("concluir_aviso_if_sync", {
+        p_membro_id: membroAtual.membro_id,
+        p_aviso_id: avisoId
+      });
+
+    if (error) {
+      console.error("Erro ao concluir aviso:", error);
+      alert("Não foi possível concluir a tarefa.");
+      return;
+    }
+  }
+
+  await carregarAvisos();
+}
 
     function mostrarGerenciamento() {
       verificarPrazos();
