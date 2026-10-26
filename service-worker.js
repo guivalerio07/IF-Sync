@@ -67,3 +67,60 @@ self.addEventListener("fetch", event => {
       .then(cached => cached || fetch(event.request))
   );
 });
+// Recebe notificações push
+self.addEventListener("push", event => {
+  let dados = {
+    title: "IF Sync",
+    body: "Você tem uma nova notificação.",
+    url: "./"
+  };
+
+  if (event.data) {
+    try {
+      dados = { ...dados, ...event.data.json() };
+    } catch (erro) {
+      dados.body = event.data.text();
+    }
+  }
+
+  const opcoes = {
+    body: dados.body,
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
+    data: {
+      url: dados.url || "./"
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(
+      dados.title || "IF Sync",
+      opcoes
+    )
+  );
+});
+
+// Abre o IF Sync quando a notificação é tocada
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+
+  const destino = new URL(
+    event.notification.data?.url || "./",
+    self.location.origin
+  ).href;
+
+  event.waitUntil(
+    clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    }).then(janelas => {
+      for (const janela of janelas) {
+        if (janela.url.startsWith(self.location.origin)) {
+          return janela.focus();
+        }
+      }
+
+      return clients.openWindow(destino);
+    })
+  );
+});
