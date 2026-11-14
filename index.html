@@ -966,7 +966,7 @@ const link = document.getElementById("link").value.trim();
 
     const { data, error } = await supabaseClient
       .rpc("publicar_sugestao_if_sync", {
-        p_membro_id: membroAtual.id,
+        p_membro_id: membroAtual.membro_id,
 p_sugestao_id: window.sugestaoEmAprovacao,
 p_tipo: tipo,
 p_texto: texto,
@@ -1003,7 +1003,7 @@ p_link: link
 if (idEmEdicao) {
   const { data, error } = await supabaseClient
     .rpc("editar_aviso_if_sync", {
-p_membro_id: membroAtual.id,
+p_membro_id: membroAtual.membro_id,
 p_aviso_id: idEmEdicao,
 p_tipo: tipo,
 p_texto: texto,
@@ -1035,7 +1035,7 @@ p_link: link
 
   const { data, error } = await supabaseClient
   .rpc("criar_aviso_if_sync", {
-    p_membro_id: membroAtual.id,
+    p_membro_id: membroAtual.membro_id,
 p_tipo: tipo,
 p_texto: texto,
 p_prazo: prazo,
