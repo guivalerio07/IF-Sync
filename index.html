@@ -1011,11 +1011,11 @@ p_prazo: prazo,
 p_link: link
     });
 
-  if (error) {
-    console.error("Erro ao editar aviso no Supabase:", error);
-    alert("Não foi possível editar o aviso.");
-    return;
-  }
+ if (error) {
+  console.error("Erro ao publicar aviso:", error);
+  alert("Erro ao publicar: " + error.message);
+  return;
+}
 
   const indice = avisos.findIndex(aviso => aviso.id === idEmEdicao);
 
