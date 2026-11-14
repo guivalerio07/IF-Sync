@@ -118,10 +118,31 @@
     }
 
     .prazo {
-      margin-top: 14px;
-      font-size: 13px;
-      color: #555;
-    }
+  margin-top: 16px;
+  font-size: 17px;
+  color: #444;
+}
+
+.prazo strong {
+  color: #d93025;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.link-aviso {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 11px 15px;
+  background: #e8f8ef;
+  color: #236342;
+  border-radius: 10px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.link-aviso:hover {
+  background: #d5f1e1;
+}
 
     .card.prova .card-cabecalho { background: #ffeaea; }
     .card.tarefa.concluida .card-cabecalho {
@@ -183,7 +204,7 @@
 
     label:first-child { margin-top: 0; }
 
-    select, textarea, input[type="date"] {
+    select, textarea, input[type="date"], input[type="url"] {
       width: 100%;
       border: 1px solid #ccc;
       border-radius: 12px;
@@ -460,10 +481,17 @@
         </select>
 
         <label for="texto">Mensagem</label>
-        <textarea id="texto" placeholder="Digite o aviso..."></textarea>
+<textarea id="texto" placeholder="Digite o aviso..."></textarea>
 
-        <label for="prazo">Data de encerramento</label>
-        <input type="date" id="prazo">
+<label for="link">Link (opcional)</label>
+<input
+  type="url"
+  id="link"
+  placeholder="Cole o link da atividade no Classroom..."
+>
+
+<label for="prazo">Data de encerramento</label>
+<input type="date" id="prazo">
 
         <div class="acoes-form">
           <button class="cancelar" onclick="cancelarFormulario()">Cancelar</button>
