@@ -493,6 +493,18 @@
 <label for="prazo">Data de encerramento</label>
 <input type="date" id="prazo">
 
+       <div style="margin-top: 12px;">
+  <input
+    type="checkbox"
+    id="permanente"
+    onchange="
+      document.getElementById('prazo').disabled = this.checked;
+      if (this.checked) document.getElementById('prazo').value = '';
+    "
+  >
+  <label for="permanente">Manter aviso permanentemente</label>
+</div>
+
         <div class="acoes-form">
           <button class="cancelar" onclick="cancelarFormulario()">Cancelar</button>
           <button class="salvar" onclick="salvarAviso()">Salvar</button>
@@ -639,7 +651,7 @@ function carregarMembroAtual() {
    async function carregarAvisos() {
   const { data, error } = await supabaseClient
     .from("Avisos")
-    .select("id, tipo, texto, prazo, created_at, autor_id")
+ .select("id, tipo, texto, prazo, link, created_at, autor_id")
     .order("created_at", { ascending: false });
 
 if (error) {
@@ -701,12 +713,8 @@ if (error) {
       return `${dia}/${mes}/${ano}`;
     }
 
-   function verificarPrazos() {
-  const hoje = dataHoje();
-
-  avisos = avisos.filter(
-    aviso => !aviso.prazo || aviso.prazo >= hoje
-  );
+  function verificarPrazos() {
+  // A exclusão dos avisos será controlada pelo banco de dados.
 }
 
     function escaparHTML(texto) {
@@ -752,16 +760,18 @@ if (error) {
       return;
     }
 
-    const prazo = new Date(aviso.prazo + "T00:00:00");
+    if (!aviso.prazo) {
+  normais.push(aviso);
+} else {
+  const prazo = new Date(aviso.prazo + "T00:00:00");
+  const diferenca = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
 
-    const diferenca =
-      Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
-
-    if (diferenca <= 3) {
-      proximos.push(aviso);
-    } else {
-      normais.push(aviso);
-    }
+  if (diferenca <= 3) {
+    proximos.push(aviso);
+  } else {
+    normais.push(aviso);
+  }
+}
   });
 
   function criarCard(aviso, alerta = false) {
@@ -795,14 +805,36 @@ if (error) {
           ${escaparHTML(aviso.texto)}
         </div>
 
-        <div class="prazo">
-          Encerra em:
-          <strong>${formatarData(aviso.prazo)}</strong>
-        </div>
+       <div class="prazo">
+  ${aviso.prazo
+    ? `Encerra em: <strong>${formatarData(aviso.prazo)}</strong>`
+    : `<strong>Permanente</strong>`
+  }
+</div>
 
         ${botao}
       </div>
     `;
+
+        if (aviso.link) {
+      try {
+        const url = new URL(aviso.link);
+
+        if (url.protocol === "https:" || url.protocol === "http:") {
+          const link = document.createElement("a");
+
+          link.href = url.href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.className = "link-aviso";
+          link.textContent = "🔗 Abrir tarefa ou conteúdo";
+
+          card.querySelector(".conteudo").appendChild(link);
+        }
+      } catch {
+        console.warn("Link inválido no aviso:", aviso.id);
+      }
+    }
 
     container.appendChild(card);
   }
@@ -864,6 +896,9 @@ if (error) {
       document.getElementById("tipo").value = "aviso";
       document.getElementById("texto").value = "";
       document.getElementById("prazo").value = "";
+      document.getElementById("link").value = "";
+document.getElementById("permanente").checked = false;
+document.getElementById("prazo").disabled = false;
 
       const form = document.getElementById("formulario");
       form.classList.add("visivel");
@@ -881,24 +916,42 @@ if (error) {
       document.getElementById("tipo").value = "aviso";
       document.getElementById("texto").value = "";
       document.getElementById("prazo").value = "";
+      document.getElementById("link").value = "";
+document.getElementById("permanente").checked = false;
+document.getElementById("prazo").disabled = false;
     }
 
     async function salvarAviso() {
-  const tipo = document.getElementById("tipo").value;
-  const texto = document.getElementById("texto").value.trim();
-  const prazo = document.getElementById("prazo").value;
+ const tipo = document.getElementById("tipo").value;
+const texto = document.getElementById("texto").value.trim();
+const permanente = document.getElementById("permanente").checked;
+const prazo = permanente ? null : document.getElementById("prazo").value || null;
+const link = document.getElementById("link").value.trim();
+      if (link) {
+  try {
+    const url = new URL(link);
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      alert("Insira um link válido.");
+      return;
+    }
+  } catch {
+    alert("Insira um link válido.");
+    return;
+  }
+}
 
   if (!texto) {
     alert("Digite uma mensagem.");
     return;
   }
 
-  if (!prazo) {
+ if (!permanente && !prazo) {
     alert("Escolha a data de encerramento.");
     return;
   }
 
-  if (prazo < dataHoje()) {
+ if (prazo && prazo < dataHoje()) {
     alert("A data de encerramento não pode ser anterior a hoje.");
     return;
   }
@@ -913,11 +966,12 @@ if (error) {
 
     const { data, error } = await supabaseClient
       .rpc("publicar_sugestao_if_sync", {
-        p_membro_id: membroAtual.membro_id,
-        p_sugestao_id: window.sugestaoEmAprovacao,
-        p_tipo: tipo,
-        p_texto: texto,
-        p_prazo: prazo
+        p_membro_id: membroAtual.id,
+p_sugestao_id: window.sugestaoEmAprovacao,
+p_tipo: tipo,
+p_texto: texto,
+p_prazo: prazo,
+p_link: link
       });
 
     if (error) {
@@ -949,11 +1003,12 @@ if (error) {
 if (idEmEdicao) {
   const { data, error } = await supabaseClient
     .rpc("editar_aviso_if_sync", {
-      p_membro_id: membroAtual.membro_id,
-      p_aviso_id: idEmEdicao,
-      p_tipo: tipo,
-      p_texto: texto,
-      p_prazo: prazo
+p_membro_id: membroAtual.id,
+p_aviso_id: idEmEdicao,
+p_tipo: tipo,
+p_texto: texto,
+p_prazo: prazo,
+p_link: link
     });
 
   if (error) {
@@ -980,10 +1035,11 @@ if (idEmEdicao) {
 
   const { data, error } = await supabaseClient
   .rpc("criar_aviso_if_sync", {
-    p_membro_id: membroAtual.membro_id,
-    p_tipo: tipo,
-    p_texto: texto,
-    p_prazo: prazo
+    p_membro_id: membroAtual.id,
+p_tipo: tipo,
+p_texto: texto,
+p_prazo: prazo,
+p_link: link
   });
 
   if (error) {
@@ -1008,7 +1064,12 @@ if (idEmEdicao) {
 
       document.getElementById("tipo").value = aviso.tipo;
       document.getElementById("texto").value = aviso.texto;
-      document.getElementById("prazo").value = aviso.prazo;
+      document.getElementById("prazo").value = aviso.prazo || "";
+      document.getElementById("link").value = aviso.link || "";
+
+document.getElementById("permanente").checked = !aviso.prazo;
+
+document.getElementById("prazo").disabled = !aviso.prazo;
       document.getElementById("modoEdicao").style.display = "block";
 
       const form = document.getElementById("formulario");
@@ -1316,6 +1377,9 @@ item.innerHTML = `
   document.getElementById("tipo").value = "aviso";
   document.getElementById("texto").value = data.texto;
   document.getElementById("prazo").value = "";
+      document.getElementById("link").value = "";
+document.getElementById("permanente").checked = false;
+document.getElementById("prazo").disabled = false;
 
   const form = document.getElementById("formulario");
   form.classList.add("visivel");
@@ -1353,7 +1417,10 @@ item.innerHTML = `
         item.innerHTML = `
           <strong>${info.icone} ${info.nome}</strong>
           <div>${escaparHTML(aviso.texto)}</div>
-          <small>Encerra em ${formatarData(aviso.prazo)}</small>
+          <small>${aviso.prazo
+  ? `Encerra em ${formatarData(aviso.prazo)}`
+  : "Permanente"
+}</small>
 
           <div class="botoes-gerenciar">
             <button class="editar" onclick="editarAviso('${aviso.id}')">
