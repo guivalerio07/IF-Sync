@@ -38,6 +38,13 @@
   font-size: 18px;
 }
     
+    .titulo-passados-prazo {
+  margin: 24px 0 12px;
+  font-weight: bold;
+  color: #a22;
+  font-size: 18px;
+}
+    
     * { box-sizing: border-box; }
 
     body {
@@ -749,8 +756,9 @@ if (error) {
   hoje.setHours(0, 0, 0, 0);
 
   const proximos = [];
-  const normais = [];
-  const concluidas = [];
+const normais = [];
+const concluidas = [];
+const passados = [];
 
   avisos.forEach(aviso => {
 
@@ -766,15 +774,17 @@ if (error) {
   const prazo = new Date(aviso.prazo + "T00:00:00");
   const diferenca = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
 
-  if (diferenca <= 3) {
-    proximos.push(aviso);
-  } else {
-    normais.push(aviso);
-  }
+ if (diferenca < 0 && diferenca >= -7) {
+  passados.push(aviso);
+} else if (diferenca >= 0 && diferenca <= 3) {
+  proximos.push(aviso);
+} else if (diferenca > 3) {
+  normais.push(aviso);
+}
 }
   });
 
-  function criarCard(aviso, alerta = false) {
+  function criarCard(aviso, alerta = false, passado = false) {
     const info = infoTipo(aviso.tipo);
 
     const card = document.createElement("div");
@@ -805,9 +815,9 @@ if (error) {
           ${escaparHTML(aviso.texto)}
         </div>
 
-       <div class="prazo">
+     <div class="prazo">
   ${aviso.prazo
-    ? `Encerra em: <strong>${formatarData(aviso.prazo)}</strong>`
+    ? `${passado ? "Encerrou em:" : "Encerra em:"} <strong>${formatarData(aviso.prazo)}</strong>`
     : `<strong>Permanente</strong>`
   }
 </div>
@@ -868,6 +878,21 @@ if (error) {
       criarCard(aviso);
     });
   }
+
+   // =========================
+// PASSADOS DO PRAZO
+// =========================
+
+if (passados.length > 0) {
+  const titulo = document.createElement("div");
+  titulo.className = "titulo-passados-prazo";
+  titulo.innerHTML = "🔴 Passados do prazo";
+  container.appendChild(titulo);
+
+  passados.forEach(aviso => {
+    criarCard(aviso, false, true);
+  });
+}
 
   // =========================
   // CONCLUÍDAS
