@@ -817,7 +817,10 @@ const passados = [];
 
      <div class="prazo">
   ${aviso.prazo
-    ? `${passado ? "Encerrou em:" : "Encerra em:"} <strong>${formatarData(aviso.prazo)}</strong>`
+    ? `${(passado || (aviso.tipo === "tarefa" && aviso.concluida))
+  ? "Encerrou em:"
+  : "Encerra em:"
+} <strong>${formatarData(aviso.prazo)}</strong>`
     : `<strong>Permanente</strong>`
   }
 </div>
