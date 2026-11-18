@@ -815,15 +815,17 @@ const passados = [];
           ${escaparHTML(aviso.texto)}
         </div>
 
-     <div class="prazo">
+     
+<div class="prazo">
   ${aviso.prazo
-    ? `${(passado || (aviso.tipo === "tarefa" && aviso.concluida))
-  ? "Encerrou em:"
-  : "Encerra em:"
-} <strong>${formatarData(aviso.prazo)}</strong>`
+    ? `${passado
+        ? "Encerrou em:"
+        : "Encerra em:"
+      } <strong>${formatarData(aviso.prazo)}</strong>`
     : `<strong>Permanente</strong>`
   }
 </div>
+
 
         ${botao}
       </div>
